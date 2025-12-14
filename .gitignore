@@ -43,3 +43,11 @@ next-env.d.ts
 
 #gemini
 .gemini/
+
+#backend
+backend/
+__pycache__/
+venv/
+
+docs/
+/INSTRUCTIONS.md

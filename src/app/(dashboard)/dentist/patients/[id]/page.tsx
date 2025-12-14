@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { FileText, Upload, File, Image as ImageIcon, FlaskConical } from 'lucide-react'
 
 // 1. SHARED MOCK DB (Should be in a separate file in real app, but fine here for prototype)
 const MOCK_PATIENTS_DB = [
@@ -29,6 +30,12 @@ const DEFAULT_DETAILS = {
   recentTreatments: [
     { date: '2024-10-12', procedure: 'Dental Cleaning', dentist: 'Dr. Smith', cost: '$120' },
     { date: '2024-05-20', procedure: 'Cavity Filling (Tooth 14)', dentist: 'Dr. Smith', cost: '$250' },
+  ],
+  // Mock Patient Records
+  records: [
+    { id: 1, title: 'Previous OPG X-Ray', type: 'X-Ray', date: '2023-05-10', uploadedBy: 'Patient' },
+    { id: 2, title: 'Blood Test Results', type: 'Lab Result', date: '2024-01-15', uploadedBy: 'Doctor' },
+    { id: 3, title: 'Antibiotics Prescription', type: 'Prescription', date: '2024-05-20', uploadedBy: 'Doctor' },
   ]
 }
 
@@ -52,6 +59,15 @@ export default async function PatientProfilePage({ params }: { params: Promise<{
 
   // Merge found data with default hardcoded details
   const patient = { ...DEFAULT_DETAILS, ...foundPatient };
+
+  const getIconForRecordType = (type: string) => {
+    switch (type) {
+      case 'X-Ray': return <ImageIcon className="w-4 h-4 text-blue-500" />;
+      case 'Prescription': return <FileText className="w-4 h-4 text-green-500" />;
+      case 'Lab Result': return <FlaskConical className="w-4 h-4 text-purple-500" />;
+      default: return <File className="w-4 h-4 text-gray-500" />;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -109,6 +125,37 @@ export default async function PatientProfilePage({ params }: { params: Promise<{
                         </li>
                     ))}
                 </ul>
+            </div>
+
+            {/* NEW: Patient Records Section */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between mb-4 border-b pb-2">
+                  <h3 className="font-semibold text-gray-900">Records & Files</h3>
+                  <button className="text-xs flex items-center gap-1 text-blue-600 hover:underline">
+                    <Upload className="w-3 h-3" /> Upload
+                  </button>
+                </div>
+                <ul className="space-y-3">
+                    {patient.records.map((record) => (
+                        <li key={record.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-100 transition-colors group">
+                           <div className="flex items-center gap-3">
+                              <div className="p-2 bg-gray-50 rounded-md">
+                                {getIconForRecordType(record.type)}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{record.title}</p>
+                                <p className="text-xs text-gray-500">{record.date} • {record.type}</p>
+                              </div>
+                           </div>
+                           <button className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 hover:underline">
+                             View
+                           </button>
+                        </li>
+                    ))}
+                </ul>
+                <div className="mt-4 pt-2 border-t text-center">
+                   <button className="text-xs text-gray-500 hover:text-gray-900">View All Records</button>
+                </div>
             </div>
         </div>
 

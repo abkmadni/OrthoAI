@@ -1,22 +1,72 @@
 @import "tailwindcss";
 
 :root {
+  /* Base Colors */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #373941;    /* Logo Dark Grey */
+
+  /* Brand Colors - Change these to customize the theme */
+  --primary: #8c62c2;       /* Logo Purple */
+  --primary-foreground: #ffffff;
+  
+  --secondary: #f3f4f6;     /* gray-100 */
+  --secondary-foreground: #373941; /* Logo Dark Grey */
+  
+  --accent: #f3e8ff;        /* Light Purple Tint */
+  --accent-foreground: #8c62c2;    /* Logo Purple */
+  
+  --destructive: #ef4444;   /* red-500 */
+  --destructive-foreground: #ffffff;
+  
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  
+  --border: #e5e7eb;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-border: var(--border);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #373941;    /* Logo Dark Grey */
+  --foreground: #ffffff;
+  
+  /* Dark Mode Overrides */
+  --primary: #8c62c2;       /* Logo Purple */
+  --primary-foreground: #ffffff;
+  
+  --secondary: #2d2f36;     /* Slightly darker than background */
+  --secondary-foreground: #ffffff;
+  
+  --accent: #583d7e;        /* Darker Purple */
+  --accent-foreground: #ffffff;
+  
+  --muted: #2d2f36;
+  --muted-foreground: #9ca3af;
+  
+  --border: #4b4d55;
 }
 
 body {

@@ -1,9 +1,13 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { uploadXray } from '@/actions/xray'
+// import { uploadXray } from '@/actions/xray'
 
-export default function DropzoneUploader() {
+interface DropzoneUploaderProps {
+  onUploadComplete?: (data: any) => void
+}
+
+export default function DropzoneUploader({ onUploadComplete }: DropzoneUploaderProps) {
   const [preview, setPreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -26,15 +30,28 @@ export default function DropzoneUploader() {
     formData.append('file', fileInputRef.current.files[0])
 
     try {
-      const result = await uploadXray(formData)
-      if (result.success) {
-        setMessage(result.message || 'Upload successful!')
-        setPreview(null)
-        if (fileInputRef.current) fileInputRef.current.value = ''
-      } else {
-        setMessage(result.error || 'Upload failed')
+      // Call Python Backend
+      const response = await fetch('http://localhost:8000/analyze', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Analysis failed')
       }
+
+      const result = await response.json()
+      
+      setMessage('Analysis successful!')
+      setPreview(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      
+      if (onUploadComplete) {
+        onUploadComplete(result)
+      }
+
     } catch (error) {
+      console.error(error)
       setMessage('An unexpected error occurred')
     } finally {
       setUploading(false)

@@ -1,33 +1,33 @@
+'use client'
+
 import BoundingBoxCanvas from '@/components/features/xray/bounding-box-canvas'
 import DownloadReportButton from '@/components/features/xray/download-report-button'
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 
-// 1. MOCK DATA (Simulating what DB/Python would return)
-const MOCK_XRAY_URL = "https://prod-images-static.radiopaedia.org/images/1568739/5917493c52519577c645df92178479_jumbo.jpg" // Public sample X-ray
-const MOCK_AI_RESULTS = [
-  {
-    id: "1",
-    label: "Cavity",
-    confidence: 0.98,
-    x: 150, // Absolute pixel coordinates on original image
-    y: 250,
-    width: 60,
-    height: 60,
-    color: "#ef4444" // Red
-  },
-  {
-    id: "2",
-    label: "Root Canal Needed",
-    confidence: 0.85,
-    x: 320,
-    y: 210,
-    width: 80,
-    height: 100,
-    color: "#f59e0b" // Amber
+export default function XrayResultPage() {
+  const params = useParams()
+  const id = params?.id as string
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (id) {
+      const storedData = localStorage.getItem(`xray_result_${id}`)
+      if (storedData) {
+        setData(JSON.parse(storedData))
+      }
+      setLoading(false)
+    }
+  }, [id])
+
+  if (loading) {
+    return <div>Loading analysis...</div>
   }
-]
 
-export default async function XrayResultPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+  if (!data) {
+    return <div>Analysis not found. Please try uploading again.</div>
+  }
 
   return (
     <div className="space-y-6">
@@ -35,6 +35,7 @@ export default async function XrayResultPage({ params }: { params: Promise<{ id:
         <div>
             <h1 className="text-3xl font-bold">X-Ray Analysis Results</h1>
             <p className="text-gray-500">Scan ID: #{id}</p>
+            <p className="text-blue-600 font-semibold mt-1">Detected Type: {data.type}</p>
         </div>
         <div className="flex gap-2">
              {/* Client Component handles the download logic */}
@@ -53,7 +54,7 @@ export default async function XrayResultPage({ params }: { params: Promise<{ id:
         <div className="lg:col-span-2 border rounded-lg shadow-sm overflow-hidden" style={{ borderColor: '#e5e7eb' }}>
             <div className="p-2 border-b text-sm font-medium" style={{ backgroundColor: '#f9fafb', borderColor: '#e5e7eb', color: '#6b7280' }}>Visual Analysis</div>
             <div className="p-2">
-               <BoundingBoxCanvas imageUrl={MOCK_XRAY_URL} issues={MOCK_AI_RESULTS} />
+               <BoundingBoxCanvas imageUrl={data.imageUrl} issues={data.issues} />
             </div>
         </div>
 
@@ -62,7 +63,7 @@ export default async function XrayResultPage({ params }: { params: Promise<{ id:
             <div className="p-4 rounded-lg border" style={{ backgroundColor: '#f9fafb', borderColor: '#f3f4f6' }}>
                 <h3 className="font-semibold text-lg mb-4" style={{ color: '#1f2937' }}>Detected Issues (AI)</h3>
                 <div className="space-y-3">
-                    {MOCK_AI_RESULTS.map((issue) => (
+                    {data.issues.map((issue: any) => (
                         <div key={issue.id} className="flex items-start gap-3 p-3 rounded-md border shadow-sm" style={{ backgroundColor: '#ffffff', borderColor: '#e5e7eb' }}>
                             <div 
                                 className="w-4 h-4 mt-1 rounded-full flex-shrink-0" 
@@ -74,6 +75,9 @@ export default async function XrayResultPage({ params }: { params: Promise<{ id:
                             </div>
                         </div>
                     ))}
+                    {data.issues.length === 0 && (
+                        <p className="text-gray-500 italic">No issues detected.</p>
+                    )}
                 </div>
             </div>
 

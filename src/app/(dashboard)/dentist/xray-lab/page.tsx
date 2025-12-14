@@ -1,6 +1,18 @@
+'use client'
+
 import DropzoneUploader from '@/components/features/xray/dropzone-uploader'
+import { useRouter } from 'next/navigation'
 
 export default function DentistXrayLabPage() {
+  const router = useRouter()
+
+  const handleUploadComplete = (data: any) => {
+    // Store result in localStorage for the detail page to pick up
+    // In a real app, this would be stored in a database
+    localStorage.setItem(`xray_result_${data.imageId}`, JSON.stringify(data))
+    router.push(`/dentist/xray-lab/${data.imageId}`)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -14,7 +26,7 @@ export default function DentistXrayLabPage() {
             <p className="text-gray-600">Upload a patient's X-ray image for AI analysis.</p>
           </div>
           
-          <DropzoneUploader />
+          <DropzoneUploader onUploadComplete={handleUploadComplete} />
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams, usePathname, useRouter } from 'next/navigation'
-import { useDebouncedCallback } from 'use-debounce' // note: usually good, but I will implement manual debounce to avoid extra deps for now
+// import { useDebouncedCallback } from 'use-debounce' // note: usually good, but I will implement manual debounce to avoid extra deps for now
 import { useState, useEffect } from 'react'
 
 export default function PatientSearch({ placeholder }: { placeholder: string }) {

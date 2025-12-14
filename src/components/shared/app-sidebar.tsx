@@ -2,36 +2,45 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X, LayoutDashboard, Calendar, Users, FileDigit, Settings, LogOut } from "lucide-react";
+import { X, LayoutDashboard, Calendar, Users, FileDigit, Settings, LogOut, Sun, Moon } from "lucide-react";
+import { branding, navigation } from "@/config/branding";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 interface AppSidebarProps {
   className?: string;
   onClose?: () => void; 
 }
 
+// Map string icon names to components
+const iconMap: any = {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  FileDigit,
+  Settings,
+  LogOut
+};
+
 export default function AppSidebar({ className = "", onClose }: AppSidebarProps) {
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isActive = (path: string) => pathname === path;
   
-  const links = [
-    { href: "/dentist", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dentist/schedule", label: "Schedule", icon: Calendar },
-    { href: "/dentist/patients", label: "Patients", icon: Users },
-    { href: "/dentist/xray-lab", label: "X-Ray Lab", icon: FileDigit },
-    { href: "/dentist/settings", label: "Settings", icon: Settings },
-  ];
-
   return (
-    <div className={`flex h-full flex-col bg-white text-gray-900 border-r ${className}`}>
-      <div className="flex h-16 items-center justify-between border-b px-4 flex-shrink-0">
-        <span className="text-xl font-bold text-blue-600">Dental Clinic</span>
-        
+    <div className={`flex h-full flex-col bg-background text-foreground border-r border-border ${className}`}>
+      <div className="flex h-16 items-center justify-end border-b border-border px-4 flex-shrink-0">
         {/* Close Button - Visible on ALL screens now */}
         {onClose && (
           <button 
             onClick={onClose} 
-            className="text-gray-500 hover:bg-gray-100 p-1 rounded transition-colors"
+            className="text-muted-foreground hover:bg-secondary p-1 rounded transition-colors"
             title="Close Sidebar"
           >
              <X className="w-6 h-6" />
@@ -40,34 +49,38 @@ export default function AppSidebar({ className = "", onClose }: AppSidebarProps)
       </div>
 
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-        {links.map((link) => {
-          const Icon = link.icon;
+        {navigation.sidebar.map((link) => {
+          const Icon = iconMap[link.icon] || LayoutDashboard;
           const active = isActive(link.href);
           return (
             <Link
               key={link.href}
               href={link.href}
-              // Optional: If you want clicking a link to close the sidebar on mobile ONLY, keep the check.
-              // If you want it to stay open on desktop, we might need to conditionally call onClose.
-              // For now, I'll leave it to close on mobile overlay, but typically desktop persistent sidebar stays open.
-              // Since you requested "Cross sign to close it", maybe you want it to stay open until explicitly closed?
-              // I will NOT attach onClose here for desktop, only mobile overlay handles this usually.
-              // But since we are sharing the component, let's just let the user decide via the Cross button.
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 active 
-                  ? "bg-blue-50 text-blue-600" 
-                  : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  ? "bg-primary text-primary-foreground" 
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
-              <Icon className={`w-5 h-5 ${active ? "text-blue-600" : "text-gray-400"}`} />
+              <Icon className={`w-5 h-5 ${active ? "text-primary-foreground" : "text-muted-foreground"}`} />
               {link.label}
             </Link>
           );
         })}
       </nav>
       
-      <div className="border-t p-4 flex-shrink-0">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+      <div className="border-t border-border p-4 flex-shrink-0 space-y-2">
+        {mounted && (
+          <button 
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          >
+            {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {theme === "dark" ? "Light Mode" : "Dark Mode"}
+          </button>
+        )}
+
+        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-destructive hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
           <LogOut className="w-5 h-5" />
           Logout
         </button>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import AppSidebar from "@/components/shared/app-sidebar";
 import { Menu } from "lucide-react";
+import { branding } from "@/config/branding";
 
 export default function DashboardLayout({
   children,
@@ -68,7 +69,7 @@ export default function DashboardLayout({
                    setDesktopSidebarOpen(true);
                  }
                }}
-               className={`p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+               className={`p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
                  // Hide on desktop if sidebar is open
                  isDesktopSidebarOpen ? "md:hidden" : "block"
                }`}
@@ -76,7 +77,16 @@ export default function DashboardLayout({
                <Menu className="w-6 h-6" />
              </button>
              
-             <span className="font-bold text-lg text-blue-600">Dental Clinic</span>
+             {/* Branding / Logo */}
+             {(branding.logo as any).image ? (
+                <div className="flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={(branding.logo as any).image} alt={branding.logo.text} className="h-8 w-auto object-contain" />
+                  <span className="text-xl font-bold text-primary">{branding.logo.text}</span>
+                </div>
+             ) : (
+               <span className="text-xl font-bold text-primary">{branding.logo.text}</span>
+             )}
            </div>
 
            <div className="flex items-center gap-2">
