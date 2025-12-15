@@ -1,11 +1,12 @@
 "use client"
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { X, LayoutDashboard, Calendar, Users, FileDigit, Settings, LogOut, Sun, Moon } from "lucide-react";
 import { branding, navigation } from "@/config/branding";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { useRole } from "@/components/providers/role-provider";
 
 interface AppSidebarProps {
   className?: string;
@@ -24,7 +25,9 @@ const iconMap: any = {
 
 export default function AppSidebar({ className = "", onClose }: AppSidebarProps) {
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
+  const router = useRouter();
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { role, clearRole } = useRole();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -32,6 +35,8 @@ export default function AppSidebar({ className = "", onClose }: AppSidebarProps)
   }, []);
 
   const isActive = (path: string) => pathname === path;
+
+  const links = role ? navigation.sidebar[role] ?? [] : [];
   
   return (
     <div className={`flex h-full flex-col bg-background text-foreground border-r border-border ${className}`}>
@@ -49,7 +54,7 @@ export default function AppSidebar({ className = "", onClose }: AppSidebarProps)
       </div>
 
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-        {navigation.sidebar.map((link) => {
+        {links.map((link) => {
           const Icon = iconMap[link.icon] || LayoutDashboard;
           const active = isActive(link.href);
           return (
@@ -72,15 +77,21 @@ export default function AppSidebar({ className = "", onClose }: AppSidebarProps)
       <div className="border-t border-border p-4 flex-shrink-0 space-y-2">
         {mounted && (
           <button 
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => setTheme((resolvedTheme || theme) === "dark" ? "light" : "dark")}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
-            {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            {theme === "dark" ? "Light Mode" : "Dark Mode"}
+            {(resolvedTheme || theme) === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {(resolvedTheme || theme) === "dark" ? "Light Mode" : "Dark Mode"}
           </button>
         )}
 
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-destructive hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+        <button
+          onClick={() => {
+            clearRole();
+            router.push("/login");
+          }}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-destructive hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+        >
           <LogOut className="w-5 h-5" />
           Logout
         </button>

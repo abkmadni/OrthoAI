@@ -1,10 +1,10 @@
 'use client'
 
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Calendar, dateFnsLocalizer, View, Views, SlotInfo } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
-import { useState, useCallback } from 'react'
 import { Dialog } from '@/components/ui/dialog'
 
 const locales = {
@@ -19,81 +19,183 @@ const localizer = dateFnsLocalizer({
   locales,
 })
 
-// Mock Data
-const INITIAL_EVENTS = [
-  {
-    id: 1,
-    title: 'Dental Cleaning - John Doe',
-    start: new Date(2024, 10, 29, 10, 0), // Note: Month is 0-indexed (10 = Nov)
-    end: new Date(2024, 10, 29, 11, 0),
-    resource: 'Dr. Smith',
-    status: 'confirmed'
-  },
-  {
-    id: 2,
-    title: 'Root Canal - Sarah Johnson',
-    start: new Date(2024, 10, 29, 14, 0),
-    end: new Date(2024, 10, 29, 15, 30),
-    resource: 'Dr. Smith',
-    status: 'pending'
-  },
-  {
-    id: 3,
-    title: 'Checkup - Jane Smith',
-    start: new Date(2024, 10, 30, 9, 30),
-    end: new Date(2024, 10, 30, 10, 0),
-    resource: 'Dr. Lee',
-    status: 'confirmed'
-  },
-]
+type PatientOption = {
+  _id: string
+  firstName: string
+  lastName: string
+  dentist?: string
+}
+
+type AppointmentPayload = {
+  _id?: string
+  title: string
+  start: string
+  end: string
+  status: string
+  patient: string
+  dentist: string
+  type?: string
+  notes?: string
+}
 
 export default function CalendarScheduler() {
   const [view, setView] = useState<View>(Views.WEEK)
-  const [date, setDate] = useState(new Date(2024, 10, 29))
-  const [events, setEvents] = useState(INITIAL_EVENTS)
+  const [date, setDate] = useState(new Date())
+  const [events, setEvents] = useState<any[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null)
   const [newEventTitle, setNewEventTitle] = useState('')
+  const [patients, setPatients] = useState<PatientOption[]>([])
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('')
+  const [startValue, setStartValue] = useState('')
+  const [endValue, setEndValue] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const [patientsRes, apptRes] = await Promise.all([
+          fetch('/api/patients', { cache: 'no-store' }),
+          fetch('/api/appointments', { cache: 'no-store' }),
+        ])
+
+        if (!patientsRes.ok) throw new Error('Unable to load patients')
+        if (!apptRes.ok) throw new Error('Unable to load appointments')
+
+        const patientsJson = await patientsRes.json()
+        const apptsJson = await apptRes.json()
+
+        if (!active) return
+
+        const patientList: PatientOption[] = patientsJson.data ?? []
+        setPatients(patientList)
+        setSelectedPatientId((patientList[0] && patientList[0]._id) || '')
+
+        const mapped = (apptsJson.data ?? []).map((appt: any) => ({
+          id: appt._id,
+          title: appt.title,
+          start: new Date(appt.start),
+          end: new Date(appt.end),
+          status: appt.status,
+          resource: appt,
+        }))
+        setEvents(mapped)
+      } catch (err: any) {
+        if (active) setError(err.message || 'Failed to load schedule')
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [])
 
   const onNavigate = useCallback((newDate: Date) => setDate(newDate), [setDate])
   const onView = useCallback((newView: View) => setView(newView), [setView])
 
   const handleSelectSlot = useCallback(
     (slotInfo: SlotInfo) => {
+      if (!patients.length) {
+        setError('Add a patient before scheduling.')
+        return
+      }
+      setError(null)
       setSelectedSlot(slotInfo)
       setNewEventTitle('')
+      setStartValue(slotInfo.start.toISOString().slice(0, 16))
+      setEndValue(slotInfo.end.toISOString().slice(0, 16))
       setIsModalOpen(true)
     },
     []
   )
 
-  const handleSaveEvent = () => {
-    if (newEventTitle && selectedSlot) {
+  const openBlankModal = () => {
+    if (!patients.length) {
+      setError('Add a patient before scheduling.')
+      return
+    }
+    setError(null)
+    const now = new Date()
+    const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
+    setSelectedSlot({ start: now, end: inOneHour, slots: [], action: 'select' })
+    setStartValue(now.toISOString().slice(0, 16))
+    setEndValue(inOneHour.toISOString().slice(0, 16))
+    setNewEventTitle('')
+    setIsModalOpen(true)
+  }
+
+  const selectedPatient = useMemo(
+    () => patients.find((p) => p._id === selectedPatientId),
+    [patients, selectedPatientId]
+  )
+
+  const handleSaveEvent = async () => {
+    if (!newEventTitle || !startValue || !endValue || !selectedPatient) {
+      setError('Title, patient, start, and end are required')
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+
+    const payload: AppointmentPayload = {
+      title: newEventTitle,
+      start: new Date(startValue).toISOString(),
+      end: new Date(endValue).toISOString(),
+      status: 'scheduled',
+      patient: selectedPatient._id,
+      dentist: selectedPatient.dentist || '',
+      type: 'checkup',
+      notes: '',
+    }
+
+    try {
+      if (!payload.dentist) throw new Error('Missing dentist for this patient')
+
+      const res = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error('Failed to create appointment')
+      const { data } = await res.json()
+
       const newEvent = {
-        id: events.length + 1,
-        title: newEventTitle,
-        start: selectedSlot.start as Date,
-        end: selectedSlot.end as Date,
-        resource: 'Dr. Smith',
-        status: 'confirmed'
+        id: data._id,
+        title: data.title,
+        start: new Date(data.start),
+        end: new Date(data.end),
+        status: data.status,
+        resource: data,
       }
-      setEvents([...events, newEvent])
+      setEvents((prev) => [...prev, newEvent])
       setIsModalOpen(false)
+    } catch (err: any) {
+      setError(err.message || 'Could not save appointment')
+    } finally {
+      setSaving(false)
     }
   }
 
   // Custom styling for events
   const eventPropGetter = (event: any) => {
-    // Use CSS variables for colors if possible, or map to the theme colors
-    // Note: react-big-calendar expects inline styles with hex/rgb usually, 
-    // but we can try to use the computed style or just hardcode the theme mapping here for now
-    // to keep it simple while respecting the "blue" theme.
-    const backgroundColor = event.status === 'confirmed' ? 'var(--primary)' : '#d97706'
+    const backgroundColor = event.status === 'scheduled' ? 'var(--primary)' : '#d97706'
     return { style: { backgroundColor } }
   }
 
   return (
     <>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-foreground">Calendar</h3>
+        <button
+          onClick={openBlankModal}
+          className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90"
+        >
+          + New appointment
+        </button>
+      </div>
+
       <div className="h-[600px] bg-background p-4 rounded-lg shadow-sm border border-border">
         <Calendar
           localizer={localizer}
@@ -118,6 +220,7 @@ export default function CalendarScheduler() {
         title="New Appointment"
       >
         <div className="space-y-4">
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
               Appointment Title
@@ -131,8 +234,39 @@ export default function CalendarScheduler() {
               autoFocus
             />
           </div>
-          <div className="text-sm text-muted-foreground">
-            Time: {selectedSlot?.start.toLocaleString()}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">Patient</label>
+            <select
+              className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
+              value={selectedPatientId}
+              onChange={(e) => setSelectedPatientId(e.target.value)}
+            >
+              {patients.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.firstName} {p.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Start</label>
+              <input
+                type="datetime-local"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
+                value={startValue}
+                onChange={(e) => setStartValue(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">End</label>
+              <input
+                type="datetime-local"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
+                value={endValue}
+                onChange={(e) => setEndValue(e.target.value)}
+              />
+            </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <button
@@ -142,10 +276,11 @@ export default function CalendarScheduler() {
               Cancel
             </button>
             <button
+              disabled={saving}
               onClick={handleSaveEvent}
-              className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90"
+              className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 disabled:opacity-60"
             >
-              Save Appointment
+              {saving ? 'Saving...' : 'Save Appointment'}
             </button>
           </div>
         </div>

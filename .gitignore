@@ -44,10 +44,12 @@ next-env.d.ts
 #gemini
 .gemini/
 
-#backend
-backend/
-__pycache__/
-venv/
+# backend
+backend/.env*
+backend/venv/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/.mypy_cache/
 
 docs/
 /INSTRUCTIONS.md

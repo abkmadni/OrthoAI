@@ -4,6 +4,7 @@ import { useState } from "react";
 import AppSidebar from "@/components/shared/app-sidebar";
 import { Menu } from "lucide-react";
 import { branding } from "@/config/branding";
+import { RoleProvider } from "@/components/providers/role-provider";
 
 export default function DashboardLayout({
   children,
@@ -16,6 +17,7 @@ export default function DashboardLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
+    <RoleProvider>
     <div className="flex min-h-screen w-full bg-gray-50 relative">
       
       {/* --- MOBILE SIDEBAR (Overlay) --- */}
@@ -101,5 +103,6 @@ export default function DashboardLayout({
         </div>
       </main>
     </div>
+    </RoleProvider>
   );
 }
